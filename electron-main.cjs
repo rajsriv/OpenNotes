@@ -8,6 +8,10 @@ const fs = require('fs');
 app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
 app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
 
+// Critical for Desktop Environment icon association (Taskbar & Window)
+app.setAppUserModelId('opennotes');
+app.name = 'opennotes';
+
 let mainWindow;
 
 function createWindow() {

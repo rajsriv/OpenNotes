@@ -1,4 +1,5 @@
 {
+  "desktopName": "opennotes.desktop",
   "name": "opennotes",
   "version": "0.0.0",
   "author": "rajsriv <raj2005sriv@gmail.com>",
@@ -46,14 +47,22 @@
       "category": "public.app-category.productivity"
     },
     "linux": {
-      "icon": "icon.png",
+      "executableName": "opennotes",
+      "icon": "build/icons",
       "target": [
         "AppImage",
         "deb",
         "pacman",
         "rpm"
       ],
-      "category": "Office"
+      "category": "Office",
+      "syncDesktopName": true,
+      "desktop": {
+        "entry": {
+          "StartupWMClass": "opennotes",
+          "Icon": "/usr/share/icons/hicolor/512x512/apps/opennotes.png"
+        }
+      }
     },
     "files": [
       "dist/**/*",
