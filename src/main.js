@@ -8,7 +8,11 @@ Storage.prototype.setItem = function(key, value) {
   if (window.electronAPI && window.electronAPI.saveDataSync) {
     window.electronAPI.saveDataSync(key, value);
   }
-  _originalSetItem.call(this, key, value);
+  try {
+    _originalSetItem.call(this, key, value);
+  } catch (e) {
+    console.warn("Storage quota exceeded in browser context, but successfully backup-persisted via Electron API.", e);
+  }
 };
 
 Storage.prototype.getItem = function(key) {
@@ -385,6 +389,10 @@ function renderHomeGrid(searchTerm = '') {
     const card = document.createElement('div');
     card.className = 'book-card';
     card.onclick = () => setActiveNote(note.id);
+    card.oncontextmenu = (e) => {
+      e.preventDefault();
+      showCollegeContextMenu('note', note.id, e.clientX, e.clientY);
+    };
     
     card.innerHTML = `
       <div class="book-card-title">${note.title || 'Untitled Note'}</div>
@@ -760,7 +768,7 @@ window.showPanel = function(panelId, btnId) {
     }
   }
 
-  const panels = ['home-grid', 'home-graph', 'home-tasks', 'home-session', 'home-scratchpad', 'home-settings'];
+  const panels = ['home-grid', 'home-graph', 'home-tasks', 'home-session', 'home-scratchpad', 'home-settings', 'home-college'];
   panels.forEach(p => {
     const el = document.getElementById(p);
     if (el) el.style.display = 'none';
@@ -783,7 +791,7 @@ window.showPanel = function(panelId, btnId) {
     if (controls) controls.style.display = 'none';
   }
 
-  const navBtns = ['nav-dashboard-btn', 'nav-projects-btn', 'nav-tasks-btn', 'nav-session-btn', 'nav-scratchpad-btn', 'nav-settings-btn'];
+  const navBtns = ['nav-dashboard-btn', 'nav-projects-btn', 'nav-tasks-btn', 'nav-session-btn', 'nav-scratchpad-btn', 'nav-settings-btn', 'nav-college-btn'];
   navBtns.forEach(b => {
     const el = document.getElementById(b);
     if (el) el.classList.remove('active');
@@ -812,7 +820,7 @@ window.toggleDashboardBanner = function(e) {
 };
 
 window.showInnerTaskTab = function(tabId) {
-  const tabs = ['todo', 'habits', 'goals', 'books'];
+  const tabs = ['todo', 'habits', 'goals', 'books', 'projects'];
   tabs.forEach(t => {
     const el = document.getElementById(`inner-tab-${t}`);
     if (el) el.style.display = 'none';
@@ -825,7 +833,166 @@ window.showInnerTaskTab = function(tabId) {
   
   const activeNav = document.getElementById(`inner-nav-${tabId}`);
   if (activeNav) activeNav.classList.add('active');
+
+  if (tabId === 'projects') {
+    renderProjectCalendar();
+  }
 };
+
+// -----------------------------------------
+// Project Tracker Logic
+// -----------------------------------------
+let currentProjectCalendarDate = new Date();
+
+window.openProjectNote = function(noteId) {
+  setActiveNote(noteId);
+};
+
+function renderProjectCalendar() {
+  const calendarGrid = document.getElementById('project-calendar-grid');
+  const monthNameEl = document.getElementById('project-current-month-name');
+  if (!calendarGrid) return;
+  
+  calendarGrid.innerHTML = '';
+  
+  const year = currentProjectCalendarDate.getFullYear();
+  const month = currentProjectCalendarDate.getMonth();
+  
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  if (monthNameEl) {
+    monthNameEl.textContent = `${monthNames[month]} ${year}`;
+  }
+  
+  const firstDay = new Date(year, month, 1).getDay(); // Sunday is 0, Monday is 1, etc.
+  let startOffset = firstDay;
+  
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const daysInPrevMonth = new Date(year, month, 0).getDate();
+  
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+  const todayDateNum = today.getDate();
+  
+  const totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+  
+  for (let i = 0; i < totalCells; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'project-calendar-cell';
+    
+    if (i < startOffset) {
+      // Prev month days
+      cell.classList.add('inactive');
+      const dateNum = daysInPrevMonth - startOffset + i + 1;
+      cell.innerHTML = `<div class="date-num">${dateNum}</div>`;
+    } else if (i >= startOffset + daysInMonth) {
+      // Next month days
+      cell.classList.add('inactive');
+      const dateNum = i - (startOffset + daysInMonth) + 1;
+      cell.innerHTML = `<div class="date-num">${dateNum}</div>`;
+    } else {
+      // Current month days
+      const dateNum = i - startOffset + 1;
+      
+      if (isCurrentMonth && dateNum === todayDateNum) {
+        cell.classList.add('today');
+      }
+      
+      // Filter projects/notes created on this date
+      const dayNotes = notes.filter(note => {
+        const created = new Date(note.createdAt);
+        return created.getFullYear() === year && 
+               created.getMonth() === month && 
+               created.getDate() === dateNum;
+      });
+      dayNotes.sort((a, b) => b.createdAt - a.createdAt);
+      
+      let projectsHtml = '';
+      if (dayNotes.length > 0) {
+        projectsHtml = `<div class="project-items-container">`;
+        
+        // Show only the latest 1 project created on this date
+        const note = dayNotes[0];
+        const createdDate = new Date(note.createdAt);
+        const dateStr = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+        const plainText = note.body ? note.body.replace(/<[^>]*>?/gm, '').trim() : '';
+        const preview = plainText.length > 25 ? plainText.substring(0, 25) + '...' : plainText;
+        
+        projectsHtml += `
+          <div class="project-calendar-item" onclick="event.stopPropagation(); window.openProjectNote('${note.id}')" title="${note.title || 'Untitled Note'}">
+            <div class="project-calendar-item-header">
+              <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+              <span class="project-item-title" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600;">${note.title || 'Untitled'}</span>
+            </div>
+            <div class="project-calendar-item-date">${dateStr}</div>
+            ${preview ? `<div class="project-calendar-item-preview">${preview}</div>` : ''}
+          </div>
+        `;
+        
+        if (dayNotes.length > 1) {
+          projectsHtml += `
+            <div class="project-more-badge" style="font-size: 0.7rem; font-weight: 600; color: var(--accent-color); padding: 2px 6px; background: var(--overlay-light); border-radius: 4px; align-self: flex-start; margin-top: 4px;">
+              + ${dayNotes.length - 1} more
+            </div>
+          `;
+        }
+        
+        projectsHtml += `</div>`;
+      }
+      
+      cell.innerHTML = `
+        <div class="date-num">${dateNum}</div>
+        ${projectsHtml}
+      `;
+      
+      if (dayNotes.length > 0) {
+        cell.style.cursor = 'pointer';
+        cell.onclick = () => {
+          openProjectDayModal(dayNotes, `${monthNames[month]} ${dateNum}, ${year}`);
+        };
+      }
+    }
+    
+    calendarGrid.appendChild(cell);
+  }
+}
+
+function openProjectDayModal(dayNotes, dateStr) {
+  const modal = document.getElementById('project-day-modal');
+  const titleEl = document.getElementById('project-day-modal-title');
+  const listEl = document.getElementById('project-day-modal-list');
+  if (!modal || !titleEl || !listEl) return;
+  
+  titleEl.textContent = `Projects on ${dateStr}`;
+  listEl.innerHTML = '';
+  
+  dayNotes.forEach(note => {
+    const createdDate = new Date(note.createdAt);
+    const dateStrFormatted = createdDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const plainText = note.body ? note.body.replace(/<[^>]*>?/gm, '').trim() : '';
+    const preview = plainText.length > 50 ? plainText.substring(0, 50) + '...' : plainText;
+    
+    const item = document.createElement('div');
+    item.className = 'project-calendar-item';
+    item.style.padding = '12px 16px';
+    item.style.borderRadius = '12px';
+    item.onclick = () => {
+      modal.style.display = 'none';
+      window.openProjectNote(note.id);
+    };
+    
+    item.innerHTML = `
+      <div class="project-calendar-item-header" style="font-size: 0.95rem; margin-bottom: 4px;">
+        <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" style="flex-shrink: 0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        <span class="project-item-title" style="font-weight: 700; color: var(--text-primary);">${note.title || 'Untitled'}</span>
+      </div>
+      <div class="project-calendar-item-date" style="font-size: 0.75rem; margin-bottom: 6px;">Created: ${dateStrFormatted}</div>
+      ${preview ? `<div class="project-calendar-item-preview" style="font-size: 0.75rem; line-height: 1.3;">${preview}</div>` : ''}
+    `;
+    listEl.appendChild(item);
+  });
+  
+  modal.style.display = 'flex';
+}
 
 // -----------------------------------------
 // Tasks Panel Logic
@@ -1355,6 +1522,29 @@ document.addEventListener('DOMContentLoaded', () => {
       tasks.unshift({ text, completed: false, id: Date.now() });
       taskInput.value = '';
       saveTasks();
+      
+      // Also add to calendar on current date
+      const today = new Date();
+      const tDate = today.getDate();
+      const tMonth = today.getMonth();
+      const tYear = today.getFullYear();
+      
+      calendarTasks.push({ date: tDate, month: tMonth, year: tYear, event: text });
+      localStorage.setItem('opennotes_calendar_tasks', JSON.stringify(calendarTasks));
+      
+      if (typeof renderCalendar === 'function') {
+        renderCalendar();
+      }
+      
+      const dayView = document.getElementById('calendar-day-view');
+      if (dayView && dayView.style.display !== 'none' && 
+          currentCalendarDate.getFullYear() === tYear && 
+          currentCalendarDate.getMonth() === tMonth && 
+          activeDateIndex === tDate) {
+        if (typeof renderDayEvents === 'function') {
+          renderDayEvents(tYear, tMonth, tDate);
+        }
+      }
     }
   }
   
@@ -1421,6 +1611,24 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
   
+  // Project Calendar Nav
+  const projectPrevMonthBtn = document.getElementById('project-prev-month-btn');
+  const projectNextMonthBtn = document.getElementById('project-next-month-btn');
+  
+  if (projectPrevMonthBtn) {
+    projectPrevMonthBtn.addEventListener('click', () => {
+      currentProjectCalendarDate.setMonth(currentProjectCalendarDate.getMonth() - 1);
+      renderProjectCalendar();
+    });
+  }
+  
+  if (projectNextMonthBtn) {
+    projectNextMonthBtn.addEventListener('click', () => {
+      currentProjectCalendarDate.setMonth(currentProjectCalendarDate.getMonth() + 1);
+      renderProjectCalendar();
+    });
+  }
+  
   // Calendar Day View Actions
   const backToMonthBtn = document.getElementById('back-to-month-btn');
   if (backToMonthBtn) backToMonthBtn.addEventListener('click', closeDayView);
@@ -1481,6 +1689,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (closeBookModalBtn) closeBookModalBtn.addEventListener('click', () => {
     if(bookModal) bookModal.style.display = 'none';
   });
+  
+  const closeProjectDayModalBtn = document.getElementById('close-project-day-modal');
+  if (closeProjectDayModalBtn) {
+    closeProjectDayModalBtn.addEventListener('click', () => {
+      const modal = document.getElementById('project-day-modal');
+      if (modal) modal.style.display = 'none';
+    });
+  }
   
   if (saveBookBtn) {
     saveBookBtn.addEventListener('click', () => {
@@ -2378,3 +2594,561 @@ if (window.electronAPI && window.electronAPI.onMprisUpdate) {
   };
   bindControls();
 }
+
+// -----------------------------------------
+// College Notes logic
+// -----------------------------------------
+let collegeFolders = JSON.parse(localStorage.getItem('opennotes_college_folders')) || [];
+let activeCollegeFolderId = null;
+let contextTargetType = null; // 'folder' or 'pdf'
+let contextTargetId = null;   // folderId or pdfId
+let editingFolderId = null;   // folderId being renamed/edited
+
+function saveCollegeFolders() {
+  localStorage.setItem('opennotes_college_folders', JSON.stringify(collegeFolders));
+}
+
+window.toggleCollegePanel = function() {
+  setActiveNote(null);
+  showPanel('home-college', 'nav-college-btn');
+  activeCollegeFolderId = null;
+  
+  // Show folders view, hide single folder contents view
+  const fc = document.getElementById('college-folders-container');
+  const sfv = document.getElementById('college-single-folder-view');
+  if (fc) fc.style.display = 'flex';
+  if (sfv) sfv.style.display = 'none';
+
+  // Make sure new folder button is visible
+  const addBtn = document.getElementById('add-college-folder-btn');
+  if (addBtn) addBtn.style.display = 'flex';
+  
+  renderCollegeFolders();
+};
+
+window.renderCollegeFolders = function() {
+  const foldersGrid = document.getElementById('college-folders-grid');
+  if (!foldersGrid) return;
+  foldersGrid.innerHTML = '';
+
+  if (collegeFolders.length === 0) {
+    foldersGrid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-secondary);">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" style="margin-bottom: 16px; opacity: 0.5; display: inline-block;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        <h4 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0 0 4px 0;">No Folders Yet</h4>
+        <p style="font-size: 0.9rem; margin: 0;">Create a folder to begin organizing your college notes.</p>
+      </div>
+    `;
+    return;
+  }
+
+  collegeFolders.forEach(folder => {
+    const card = document.createElement('div');
+    card.className = 'college-folder-card';
+    card.onclick = () => window.openCollegeFolder(folder.id);
+
+    // Bind custom context menu
+    card.oncontextmenu = (e) => {
+      e.preventDefault();
+      showCollegeContextMenu('folder', folder.id, e.clientX, e.clientY);
+    };
+
+    const pdfCount = folder.pdfs ? folder.pdfs.length : 0;
+    const pdfWord = pdfCount === 1 ? 'PDF' : 'PDFs';
+
+    card.innerHTML = `
+      <div class="college-card-actions">
+        <button class="college-action-btn" onclick="event.stopPropagation(); window.deleteCollegeFolder('${folder.id}')" title="Delete Folder">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </div>
+      <div class="college-folder-icon">
+        <svg viewBox="0 0 24 24" width="40" height="40" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+      </div>
+      <h4 class="college-folder-title" title="${folder.name}">${folder.name}</h4>
+      ${folder.category ? `<span class="college-folder-category-badge">${folder.category}</span>` : '<span class="college-folder-category-badge" style="opacity:0.3">Uncategorized</span>'}
+      <div class="college-folder-meta">
+        <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+        <span>${pdfCount} ${pdfWord}</span>
+      </div>
+    `;
+    foldersGrid.appendChild(card);
+  });
+};
+
+window.openCollegeFolder = function(folderId) {
+  activeCollegeFolderId = folderId;
+  const folder = collegeFolders.find(f => f.id === folderId);
+  if (!folder) return;
+
+  const fc = document.getElementById('college-folders-container');
+  const sfv = document.getElementById('college-single-folder-view');
+  if (fc) fc.style.display = 'none';
+  if (sfv) sfv.style.display = 'flex';
+
+  const titleEl = document.getElementById('college-folder-title');
+  const catEl = document.getElementById('college-folder-category');
+  if (titleEl) titleEl.textContent = folder.name;
+  if (catEl) catEl.textContent = folder.category || 'Uncategorized';
+
+  // Hide new folder button when folder is open
+  const addBtn = document.getElementById('add-college-folder-btn');
+  if (addBtn) addBtn.style.display = 'none';
+
+  renderCollegeSingleFolder(folderId);
+};
+
+function renderCollegeSingleFolder(folderId) {
+  const pdfsGrid = document.getElementById('college-pdfs-grid');
+  if (!pdfsGrid) return;
+  pdfsGrid.innerHTML = '';
+
+  const folder = collegeFolders.find(f => f.id === folderId);
+  if (!folder) return;
+
+  const pdfList = folder.pdfs || [];
+
+  if (pdfList.length === 0) {
+    pdfsGrid.innerHTML = `
+      <div style="grid-column: 1 / -1; text-align: center; padding: 60px 20px; color: var(--text-secondary);">
+        <svg viewBox="0 0 24 24" width="48" height="48" stroke="currentColor" stroke-width="1.5" fill="none" style="margin-bottom: 16px; opacity: 0.5; display: inline-block;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+        <h4 style="font-size: 1.1rem; font-weight: 600; color: var(--text-primary); margin: 0 0 4px 0;">No PDFs Imported</h4>
+        <p style="font-size: 0.9rem; margin: 0;">Import a lecture PDF note to store it inside this folder.</p>
+      </div>
+    `;
+    return;
+  }
+
+  // Sort by createdAt desc
+  const sortedPdfs = [...pdfList].sort((a, b) => b.createdAt - a.createdAt);
+
+  sortedPdfs.forEach(pdf => {
+    const card = document.createElement('div');
+    card.className = 'college-pdf-card';
+    card.onclick = () => window.viewCollegePDF(pdf.id);
+
+    // Bind custom context menu
+    card.oncontextmenu = (e) => {
+      e.preventDefault();
+      showCollegeContextMenu('pdf', pdf.id, e.clientX, e.clientY);
+    };
+
+    const uploadDate = new Date(pdf.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+
+    card.innerHTML = `
+      <div class="college-card-actions">
+        <button class="college-action-btn" onclick="event.stopPropagation(); window.deleteCollegePDF('${pdf.id}')" title="Delete PDF">
+          <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </div>
+      <div class="college-pdf-icon">
+        <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="2" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+      </div>
+      <div class="college-pdf-info">
+        <h5 class="college-pdf-name" title="${pdf.name}">${pdf.name}</h5>
+        <div class="college-pdf-meta">${pdf.size} • Imported ${uploadDate}</div>
+      </div>
+    `;
+    pdfsGrid.appendChild(card);
+  });
+}
+
+window.deleteCollegeFolder = function(folderId) {
+  const folder = collegeFolders.find(f => f.id === folderId);
+  if (!folder) return;
+
+  if (confirm(`Are you sure you want to delete the folder "${folder.name}" and all its imported PDFs?`)) {
+    collegeFolders = collegeFolders.filter(f => f.id !== folderId);
+    saveCollegeFolders();
+    renderCollegeFolders();
+  }
+};
+
+window.deleteCollegePDF = function(pdfId) {
+  const folder = collegeFolders.find(f => f.id === activeCollegeFolderId);
+  if (!folder) return;
+
+  const pdf = folder.pdfs.find(p => p.id === pdfId);
+  if (!pdf) return;
+
+  if (confirm(`Are you sure you want to delete "${pdf.name}"?`)) {
+    folder.pdfs = folder.pdfs.filter(p => p.id !== pdfId);
+    saveCollegeFolders();
+    renderCollegeSingleFolder(activeCollegeFolderId);
+  }
+};
+
+window.viewCollegePDF = function(pdfId) {
+  const folder = collegeFolders.find(f => f.id === activeCollegeFolderId);
+  if (!folder) return;
+
+  const pdf = folder.pdfs.find(p => p.id === pdfId);
+  if (!pdf) return;
+
+  const modal = document.getElementById('college-pdf-viewer-modal');
+  const titleEl = document.getElementById('college-pdf-viewer-title');
+  const iframe = document.getElementById('college-pdf-iframe');
+  const noteContentEl = document.getElementById('college-note-viewer-content');
+
+  if (modal && titleEl && iframe && noteContentEl) {
+    if (pdf.isNote) {
+      // Find latest note contents
+      const note = notes.find(n => n.id === pdf.noteId);
+      titleEl.textContent = note ? (note.title || 'Untitled Note') : pdf.name;
+      
+      iframe.style.display = 'none';
+      noteContentEl.style.display = 'block';
+      
+      if (note) {
+        noteContentEl.innerHTML = `
+          <h1 style="font-size: 2.2rem; font-weight: 800; margin-top: 0; margin-bottom: 20px; border-bottom: 1px solid var(--panel-border); padding-bottom: 16px; color: var(--text-primary);">${note.title || 'Untitled Note'}</h1>
+          <div style="font-size: 1.15rem; line-height: 1.8; color: var(--text-primary);">${note.body || '<p style="color: var(--text-secondary); font-style: italic;">No content inside this note.</p>'}</div>
+        `;
+      } else {
+        noteContentEl.innerHTML = `<p style="color: var(--text-secondary); font-style: italic;">Note has been deleted from the workspace.</p>`;
+      }
+    } else {
+      titleEl.textContent = pdf.name;
+      noteContentEl.style.display = 'none';
+      iframe.style.display = 'block';
+      iframe.src = pdf.data;
+    }
+    modal.style.display = 'flex';
+  }
+};
+
+function showCollegeContextMenu(type, id, x, y) {
+  contextTargetType = type;
+  contextTargetId = id;
+
+  const menu = document.getElementById('college-context-menu');
+  if (!menu) return;
+
+  // Toggle Add to Folder wrapper visibility
+  const addToFolderWrapper = document.getElementById('context-add-to-folder-wrapper');
+  if (addToFolderWrapper) {
+    if (type === 'note') {
+      addToFolderWrapper.style.display = 'block';
+      // Dynamically populate sub-menu folders list
+      const submenu = document.getElementById('college-context-submenu');
+      if (submenu) {
+        submenu.innerHTML = '';
+        if (collegeFolders.length === 0) {
+          submenu.innerHTML = `<div style="padding: 8px 12px; color: var(--text-secondary); font-size: 0.85rem; text-align: center; white-space: nowrap;">No folders created</div>`;
+        } else {
+          collegeFolders.forEach(folder => {
+            const item = document.createElement('button');
+            item.className = 'context-item';
+            item.style.cssText = 'background: transparent; border: none; padding: 8px 12px; border-radius: 6px; font-family: inherit; font-size: 0.85rem; text-align: left; color: var(--text-primary); cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; width: 100%; transition: background 0.15s;';
+            item.textContent = folder.name;
+            item.onclick = (e) => {
+              e.stopPropagation();
+              addNoteToCollegeFolder(id, folder.id);
+              menu.style.display = 'none';
+            };
+            submenu.appendChild(item);
+          });
+        }
+      }
+    } else {
+      addToFolderWrapper.style.display = 'none';
+    }
+  }
+
+  menu.style.display = 'flex';
+
+  const menuWidth = 180;
+  const menuHeight = 160;
+  let posX = x;
+  let posY = y;
+
+  if (x + menuWidth > window.innerWidth) {
+    posX = x - menuWidth;
+  }
+  if (y + menuHeight > window.innerHeight) {
+    posY = y - menuHeight;
+  }
+
+  menu.style.left = `${posX}px`;
+  menu.style.top = `${posY}px`;
+
+  menu.oncontextmenu = (e) => e.preventDefault();
+}
+
+function addNoteToCollegeFolder(noteId, folderId) {
+  const note = notes.find(n => n.id === noteId);
+  const folder = collegeFolders.find(f => f.id === folderId);
+  if (!note || !folder) return;
+
+  if (!folder.pdfs) folder.pdfs = [];
+
+  // Check if already in folder
+  const exists = folder.pdfs.some(p => p.isNote && p.noteId === noteId);
+  if (exists) {
+    alert(`The note "${note.title || 'Untitled Note'}" is already in "${folder.name}".`);
+    return;
+  }
+
+  folder.pdfs.push({
+    id: 'pdf-note-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9),
+    name: note.title || 'Untitled Note',
+    isNote: true,
+    noteId: noteId,
+    size: 'Note Document',
+    createdAt: Date.now()
+  });
+
+  saveCollegeFolders();
+  alert(`Successfully added "${note.title || 'Untitled Note'}" to folder "${folder.name}".`);
+}
+
+// Initialize College UI Listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const openFolderModalBtn = document.getElementById('add-college-folder-btn');
+  const closeFolderModalBtn = document.getElementById('close-college-folder-modal');
+  const saveFolderBtn = document.getElementById('save-college-folder-btn');
+  const folderModal = document.getElementById('college-folder-modal');
+
+  if (openFolderModalBtn && folderModal) {
+    openFolderModalBtn.onclick = () => {
+      editingFolderId = null;
+      const titleEl = document.getElementById('college-folder-modal-title');
+      if (titleEl) titleEl.textContent = 'New Folder';
+      document.getElementById('college-folder-name').value = '';
+      document.getElementById('college-folder-category-input').value = '';
+      if (saveFolderBtn) saveFolderBtn.textContent = 'Create Folder';
+      folderModal.style.display = 'flex';
+    };
+  }
+
+  if (closeFolderModalBtn && folderModal) {
+    closeFolderModalBtn.onclick = () => {
+      folderModal.style.display = 'none';
+      editingFolderId = null;
+    };
+  }
+
+  if (saveFolderBtn && folderModal) {
+    saveFolderBtn.onclick = () => {
+      const name = document.getElementById('college-folder-name').value.trim();
+      const category = document.getElementById('college-folder-category-input').value.trim();
+
+      if (!name) {
+        alert("Please enter a folder name.");
+        return;
+      }
+
+      if (editingFolderId) {
+        const folder = collegeFolders.find(f => f.id === editingFolderId);
+        if (folder) {
+          folder.name = name;
+          folder.category = category;
+          saveCollegeFolders();
+        }
+      } else {
+        const newFolder = {
+          id: 'folder-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9),
+          name: name,
+          category: category,
+          createdAt: Date.now(),
+          pdfs: []
+        };
+        collegeFolders.push(newFolder);
+        saveCollegeFolders();
+      }
+
+      folderModal.style.display = 'none';
+      editingFolderId = null;
+      renderCollegeFolders();
+    };
+  }
+
+  // Back to Folders Button
+  const backBtn = document.getElementById('college-folder-back-btn');
+  if (backBtn) {
+    backBtn.onclick = () => {
+      document.getElementById('college-single-folder-view').style.display = 'none';
+      document.getElementById('college-folders-container').style.display = 'flex';
+      activeCollegeFolderId = null;
+      
+      const addBtn = document.getElementById('add-college-folder-btn');
+      if (addBtn) addBtn.style.display = 'flex';
+      
+      renderCollegeFolders();
+    };
+  }
+
+  // Context Menu Actions Binding
+  const contextMenu = document.getElementById('college-context-menu');
+  const contextOpenBtn = document.getElementById('context-open-btn');
+  const contextRenameBtn = document.getElementById('context-rename-btn');
+  const contextDeleteBtn = document.getElementById('context-delete-btn');
+
+  if (contextOpenBtn) {
+    contextOpenBtn.onclick = () => {
+      if (contextMenu) contextMenu.style.display = 'none';
+      if (contextTargetType === 'folder') {
+        window.openCollegeFolder(contextTargetId);
+      } else if (contextTargetType === 'pdf') {
+        window.viewCollegePDF(contextTargetId);
+      } else if (contextTargetType === 'note') {
+        setActiveNote(contextTargetId);
+      }
+    };
+  }
+
+  if (contextRenameBtn) {
+    contextRenameBtn.onclick = () => {
+      if (contextMenu) contextMenu.style.display = 'none';
+      if (contextTargetType === 'folder') {
+        editingFolderId = contextTargetId;
+        const folder = collegeFolders.find(f => f.id === editingFolderId);
+        if (folder) {
+          const titleEl = document.getElementById('college-folder-modal-title');
+          if (titleEl) titleEl.textContent = 'Rename Folder';
+          document.getElementById('college-folder-name').value = folder.name;
+          document.getElementById('college-folder-category-input').value = folder.category || '';
+          if (saveFolderBtn) saveFolderBtn.textContent = 'Save Changes';
+          if (folderModal) folderModal.style.display = 'flex';
+        }
+      } else if (contextTargetType === 'pdf') {
+        const folder = collegeFolders.find(f => f.id === activeCollegeFolderId);
+        const pdf = folder ? folder.pdfs.find(p => p.id === contextTargetId) : null;
+        if (pdf) {
+          const newName = prompt("Rename PDF document:", pdf.name);
+          if (newName && newName.trim()) {
+            pdf.name = newName.trim();
+            saveCollegeFolders();
+            renderCollegeSingleFolder(activeCollegeFolderId);
+          }
+        }
+      } else if (contextTargetType === 'note') {
+        const note = notes.find(n => n.id === contextTargetId);
+        if (note) {
+          const newTitle = prompt("Rename Note:", note.title || 'Untitled Note');
+          if (newTitle !== null) {
+            const trimmed = newTitle.trim();
+            if (trimmed) {
+              note.title = trimmed;
+              note.updatedAt = Date.now();
+              saveNotes();
+              renderHomeGrid();
+              renderNotesList();
+            }
+          }
+        }
+      }
+    };
+  }
+
+  if (contextDeleteBtn) {
+    contextDeleteBtn.onclick = () => {
+      if (contextMenu) contextMenu.style.display = 'none';
+      if (contextTargetType === 'folder') {
+        window.deleteCollegeFolder(contextTargetId);
+      } else if (contextTargetType === 'pdf') {
+        window.deleteCollegePDF(contextTargetId);
+      } else if (contextTargetType === 'note') {
+        const note = notes.find(n => n.id === contextTargetId);
+        if (note) {
+          if (confirm(`Are you sure you want to delete the note "${note.title || 'Untitled Note'}"?`)) {
+            notes = notes.filter(n => n.id !== contextTargetId);
+            saveNotes();
+            if (activeNoteId === contextTargetId) {
+              if (notes.length > 0) {
+                setActiveNote(notes[0].id);
+              } else {
+                setActiveNote(null);
+              }
+            }
+            renderHomeGrid();
+            renderNotesList();
+          }
+        }
+      }
+    };
+  }
+
+  // Dismiss context menu on click outside or ESC
+  document.addEventListener('click', (e) => {
+    if (contextMenu && !contextMenu.contains(e.target)) {
+      contextMenu.style.display = 'none';
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      if (contextMenu) contextMenu.style.display = 'none';
+    }
+  });
+
+  // Upload PDF triggers
+  const uploadBtn = document.getElementById('college-upload-pdf-btn');
+  const fileInput = document.getElementById('college-pdf-upload-input');
+
+  if (uploadBtn && fileInput) {
+    uploadBtn.onclick = () => {
+      fileInput.value = '';
+      fileInput.click();
+    };
+
+    fileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      if (file.type !== 'application/pdf') {
+        alert("Only PDF files are supported.");
+        return;
+      }
+
+      // Show a loading text or disable button during load
+      uploadBtn.disabled = true;
+      const originalText = uploadBtn.innerHTML;
+      uploadBtn.innerHTML = `<svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" class="spin"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg> Importing...`;
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const base64Data = evt.target.result;
+        const sizeFormatted = (file.size / (1024 * 1024)).toFixed(2) + ' MB';
+
+        const currentFolder = collegeFolders.find(f => f.id === activeCollegeFolderId);
+        if (currentFolder) {
+          if (!currentFolder.pdfs) currentFolder.pdfs = [];
+          currentFolder.pdfs.push({
+            id: 'pdf-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9),
+            name: file.name,
+            data: base64Data,
+            size: sizeFormatted,
+            createdAt: Date.now()
+          });
+
+          saveCollegeFolders();
+          renderCollegeSingleFolder(activeCollegeFolderId);
+        }
+
+        // Reset button state
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = originalText;
+      };
+
+      reader.onerror = () => {
+        alert("Failed to read file.");
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = originalText;
+      };
+
+      reader.readAsDataURL(file);
+    };
+  }
+
+  // Close PDF Viewer modal
+  const closePdfViewerBtn = document.getElementById('close-college-pdf-viewer-modal');
+  if (closePdfViewerBtn) {
+    closePdfViewerBtn.onclick = () => {
+      const viewerModal = document.getElementById('college-pdf-viewer-modal');
+      const iframe = document.getElementById('college-pdf-iframe');
+      if (viewerModal) viewerModal.style.display = 'none';
+      if (iframe) iframe.src = 'about:blank'; // Unload PDF from memory
+    };
+  }
+});

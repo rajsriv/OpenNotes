@@ -94,6 +94,7 @@
                 <a href="#" class="nav-link" id="nav-tasks-btn" onclick="toggleTasksPanel(); return false;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 11 12 14 22 4"></polyline><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path></svg> Tasks</a>
                 <a href="#" class="nav-link" id="nav-session-btn" onclick="showPanel('home-session', 'nav-session-btn'); return false;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Session</a>
                 <a href="#" class="nav-link" id="nav-scratchpad-btn" onclick="showPanel('home-scratchpad', 'nav-scratchpad-btn'); return false;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg> Scratchpad</a>
+                <a href="#" class="nav-link" id="nav-college-btn" onclick="toggleCollegePanel(); return false;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c0 2 2 3 6 3s6-1 6-3v-5"></path></svg> College Notes</a>
               </div>
               
               <div class="nav-section" style="margin-top: 32px;">
@@ -239,6 +240,7 @@
                 <a href="#" class="nav-link" id="inner-nav-habits" onclick="showInnerTaskTab('habits'); return false;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> Habit Tracker</a>
                 <a href="#" class="nav-link" id="inner-nav-goals" onclick="showInnerTaskTab('goals'); return false;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="6"></circle><circle cx="12" cy="12" r="2"></circle></svg> Goals</a>
                 <a href="#" class="nav-link" id="inner-nav-books" onclick="showInnerTaskTab('books'); return false;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Book Library</a>
+                <a href="#" class="nav-link" id="inner-nav-projects" onclick="showInnerTaskTab('projects'); return false;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg> Project Tracker</a>
               </div>
               
               <div class="tasks-inner-content" style="flex: 1; overflow-y: auto; padding: 40px; position: relative; display: flex; flex-direction: column;">
@@ -361,6 +363,33 @@
                       </div>
                       <div class="books-grid" id="books-list" style="flex: 1;">
                         <!-- Books injected by JS -->
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div id="inner-tab-projects" style="display: none; flex-direction: column; flex: 1;">
+                  <div class="tasks-row" style="flex: 1;">
+                    <div class="project-tracker-section" style="width: 100%; display: flex; flex-direction: column; height: 100%;">
+                      <div class="calendar-header" style="margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+                        <div class="calendar-title-group" style="display: flex; align-items: center; gap: 16px;">
+                          <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary);">Project Tracker</h3>
+                          <div class="calendar-nav" style="display: flex; gap: 8px;">
+                            <button id="project-prev-month-btn" style="background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-primary); padding: 6px 12px; border-radius: 8px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px;"><svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg> Prev</button>
+                            <button id="project-next-month-btn" style="background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-primary); padding: 6px 12px; border-radius: 8px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 4px;">Next <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                          </div>
+                          <span id="project-current-month-name" style="font-size: 1.1rem; font-weight: 600; color: var(--text-secondary); margin-left: 8px;">September 2026</span>
+                        </div>
+                      </div>
+
+                      <div class="project-calendar-container" style="flex: 1; display: flex; flex-direction: column; min-height: 550px; background: var(--panel-bg); border: 1px solid var(--panel-border); border-radius: 20px; padding: 24px; box-shadow: 0 10px 40px var(--shadow-color);">
+                        <div class="project-calendar-days-header" style="display: grid; grid-template-columns: repeat(7, 1fr); text-align: center; font-weight: 600; font-size: 0.85rem; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.05em; padding-bottom: 12px; border-bottom: 1px solid var(--panel-border); margin-bottom: 12px;">
+                          <span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span>
+                        </div>
+                        
+                        <div class="project-calendar-grid" id="project-calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); grid-auto-rows: minmax(100px, 1fr); flex: 1; gap: 8px;">
+                          <!-- Days injected by JS -->
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -532,6 +561,57 @@
                 </div>
               </div>
             </div>
+            
+            <!-- College Notes Panel -->
+            <div class="home-college" id="home-college" style="display: none; height: 100%; flex-direction: column; overflow-y: auto; padding: 40px; background: var(--bg-color);">
+              <div class="tasks-header" style="margin-bottom: 24px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <h3 style="font-size: 1.8rem; font-weight: 800; color: var(--text-primary); margin: 0;">College Notes</h3>
+                  <p style="color: var(--text-secondary); margin-top: 4px; font-size: 0.95rem;">Organize your college lectures, curriculum, and study PDF notes.</p>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                  <button id="add-college-folder-btn" class="add-header-btn" style="background: var(--accent-color); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                    <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    New Folder
+                  </button>
+                </div>
+              </div>
+
+              <!-- Folders View -->
+              <div id="college-folders-container" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                <div id="college-folders-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 20px;">
+                  <!-- Folder cards injected by JS -->
+                </div>
+              </div>
+
+              <!-- Folder Contents View -->
+              <div id="college-single-folder-view" style="display: none; flex-direction: column; flex: 1; min-height: 0;">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px;">
+                  <div style="display: flex; align-items: center; gap: 16px;">
+                    <button id="college-folder-back-btn" style="background: var(--panel-bg); border: 1px solid var(--panel-border); color: var(--text-primary); padding: 8px 16px; border-radius: 8px; font-weight: 500; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+                      Back
+                    </button>
+                    <div>
+                      <h4 id="college-folder-title" style="font-size: 1.5rem; font-weight: 800; color: var(--text-primary); margin: 0;">Folder Name</h4>
+                      <span id="college-folder-category" style="font-size: 0.8rem; font-weight: 600; color: var(--accent-color); text-transform: uppercase; letter-spacing: 0.05em;">Category</span>
+                    </div>
+                  </div>
+                  <div>
+                    <input type="file" id="college-pdf-upload-input" accept="application/pdf" style="display: none;" />
+                    <button id="college-upload-pdf-btn" class="add-header-btn" style="background: var(--accent-color); color: white; border: none; padding: 10px 18px; border-radius: 10px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                      <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                      Import PDF
+                    </button>
+                  </div>
+                </div>
+
+                <!-- PDF List Grid -->
+                <div id="college-pdfs-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px;">
+                  <!-- PDF Cards injected by JS -->
+                </div>
+              </div>
+            </div>
 
           </div>
         </main>
@@ -550,7 +630,7 @@
               <span style="display: flex; align-items: center; color: var(--text-secondary); font-weight: 600;">/</span>
               <input type="number" id="book-total-pages" class="modal-input" placeholder="Total Pages" min="1" style="flex: 1;" />
             </div>
-            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0 4px;">
+            <div style="display: flex; justify-content: justify; align-items: center; padding: 0 4px;">
               <span style="font-size: 0.95rem; color: var(--text-primary); font-weight: 600;">Rating</span>
               <div class="star-rating-input" id="book-rating" style="display: flex; align-items: center; gap: 6px; font-size: 1.8rem; color: #d1d5db; cursor: pointer;">
                 <span data-val="1">★</span><span data-val="2">★</span><span data-val="3">★</span><span data-val="4">★</span><span data-val="5">★</span>
@@ -563,6 +643,83 @@
             <button class="modal-btn primary" id="save-book-btn">Save Book</button>
           </div>
         </div>
+      </div>
+
+      <!-- Project Day Modal (Floating Menu) -->
+      <div class="modal" id="project-day-modal" style="display: none;">
+        <div class="modal-content" style="max-width: 450px;">
+          <h3 id="project-day-modal-title" style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.5rem;">Projects</h3>
+          <div id="project-day-modal-list" style="display: flex; flex-direction: column; gap: 12px; max-height: 320px; overflow-y: auto; padding-right: 4px;">
+            <!-- project items list injected by JS -->
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px;">
+            <button class="modal-btn secondary" id="close-project-day-modal">Close</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- College Folder Modal -->
+      <div class="modal" id="college-folder-modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px;">
+          <h3 id="college-folder-modal-title" style="margin-bottom: 20px; color: var(--text-primary); font-size: 1.5rem;">New Folder</h3>
+          <div style="display: flex; flex-direction: column; gap: 14px;">
+            <input type="text" id="college-folder-name" class="modal-input" placeholder="Folder Name (e.g. Advanced Calculus)" autocomplete="off" />
+            <input type="text" id="college-folder-category-input" class="modal-input" placeholder="Category/Subject (e.g. Mathematics)" autocomplete="off" />
+          </div>
+          <div style="display: flex; justify-content: flex-end; gap: 12px; margin-top: 28px;">
+            <button class="modal-btn secondary" id="close-college-folder-modal">Cancel</button>
+            <button class="modal-btn primary" id="save-college-folder-btn">Create Folder</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- College PDF Viewer Modal -->
+      <div class="modal" id="college-pdf-viewer-modal" style="display: none; z-index: 10000; padding: 0;">
+        <div class="modal-content" style="max-width: 100%; width: 100vw; height: 100vh; border-radius: 0; display: flex; flex-direction: column; padding: 20px; margin: 0; box-shadow: none; border: none;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+            <h3 id="college-pdf-viewer-title" style="color: var(--text-primary); font-size: 1.3rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80%;">Document Viewer</h3>
+            <button class="modal-btn secondary" id="close-college-pdf-viewer-modal" style="padding: 6px 12px; margin: 0;">Close</button>
+          </div>
+          <div style="flex: 1; min-height: 0; background: #1a1a1a; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column;">
+            <iframe id="college-pdf-iframe" style="width: 100%; height: 100%; border: none; display: none;"></iframe>
+            <div id="college-note-viewer-content" style="width: 100%; height: 100%; overflow-y: auto; padding: 40px; background: var(--bg-color); color: var(--text-primary); font-family: inherit; line-height: 1.6; display: none; box-sizing: border-box;">
+              <!-- Note content HTML goes here -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Custom College Context Menu -->
+      <div id="college-context-menu" style="display: none; position: fixed; z-index: 20000; background: var(--bg-color); border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 12px; box-shadow: 0 10px 30px var(--shadow-color); padding: 6px; min-width: 160px; flex-direction: column; gap: 2px;">
+        <button class="context-item" id="context-open-btn" style="background: transparent; border: none; padding: 10px 14px; border-radius: 8px; font-family: inherit; font-size: 0.9rem; text-align: left; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s;">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+          Open
+        </button>
+        <button class="context-item" id="context-rename-btn" style="background: transparent; border: none; padding: 10px 14px; border-radius: 8px; font-family: inherit; font-size: 0.9rem; text-align: left; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s;">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+          Rename / Edit
+        </button>
+        
+        <div id="context-add-to-folder-wrapper" style="position: relative; display: none;">
+          <button class="context-item" id="context-add-to-folder-btn" style="background: transparent; border: none; padding: 10px 14px; border-radius: 8px; font-family: inherit; font-size: 0.9rem; text-align: left; color: var(--text-primary); cursor: pointer; display: flex; align-items: center; justify-content: space-between; width: 100%; transition: background 0.15s;">
+            <span style="display: flex; align-items: center; gap: 8px;">
+              <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              Add to Folder
+            </span>
+            <svg viewBox="0 0 24 24" width="12" height="12" stroke="currentColor" stroke-width="2" fill="none"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+          
+          <!-- Sub-menu listing all college folders -->
+          <div id="college-context-submenu" style="display: none; position: absolute; left: 100%; top: 0; background: var(--bg-color); border: 1px solid rgba(128, 128, 128, 0.3); border-radius: 12px; box-shadow: 0 10px 30px var(--shadow-color); padding: 6px; min-width: 160px; flex-direction: column; gap: 2px; margin-left: 4px;">
+            <!-- Folder items injected by JS -->
+          </div>
+        </div>
+
+        <div style="height: 1px; background: var(--panel-border); margin: 4px 0;"></div>
+        <button class="context-item" id="context-delete-btn" style="background: transparent; border: none; padding: 10px 14px; border-radius: 8px; font-family: inherit; font-size: 0.9rem; text-align: left; color: #ef4444; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: background 0.15s;">
+          <svg viewBox="0 0 24 24" width="14" height="14" stroke="currentColor" stroke-width="2.5" fill="none"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          Delete
+        </button>
       </div>
       
       <!-- Background Ambient Glows -->

@@ -2390,3 +2390,272 @@ body {
     display: flex;
   }
 }
+
+/* --- Project Tracker Calendar Styles --- */
+.project-calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: minmax(100px, 1fr);
+  gap: 8px;
+}
+
+.project-calendar-cell {
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
+  min-height: 110px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  background: transparent;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.project-calendar-cell:hover {
+  background-color: var(--overlay-light);
+}
+
+.project-calendar-cell.inactive {
+  opacity: 0.35;
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+.project-calendar-cell .date-num {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  align-self: flex-start;
+  margin-bottom: 6px;
+}
+
+.project-calendar-cell.today .date-num {
+  background: #ef4444; /* Notion red style */
+  color: #ffffff;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+}
+
+.project-items-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.project-calendar-item {
+  background: var(--overlay-medium);
+  border: 1px solid var(--panel-border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 48px;
+  text-align: left;
+}
+
+.project-calendar-item:hover {
+  border-color: var(--accent-color);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px var(--shadow-color-light);
+  background: var(--overlay-heavy);
+}
+
+.project-calendar-item-header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.project-calendar-item-header svg {
+  color: var(--text-secondary);
+}
+
+.project-calendar-item-date {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.project-calendar-item-preview {
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  opacity: 0.8;
+  font-style: italic;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+}
+
+/* --- College Notes Styles --- */
+.college-folder-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 20px var(--shadow-color-light);
+  text-align: left;
+}
+
+.college-folder-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--accent-color);
+  box-shadow: 0 12px 30px var(--shadow-color);
+  background: var(--overlay-light);
+}
+
+.college-folder-icon {
+  color: var(--accent-color);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.college-folder-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0 0 6px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.college-folder-category-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 12px;
+}
+
+.college-folder-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.college-card-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 8px;
+}
+
+.college-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.college-action-btn:hover {
+  background: var(--overlay-medium);
+  color: #ef4444; /* red delete */
+}
+
+/* PDF Card */
+.college-pdf-card {
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 16px var(--shadow-color-light);
+  text-align: left;
+}
+
+.college-pdf-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-color);
+  background: var(--overlay-light);
+  box-shadow: 0 8px 24px var(--shadow-color);
+}
+
+.college-pdf-icon {
+  color: #ef4444; /* standard PDF red */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(239, 68, 68, 0.1);
+  padding: 12px;
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+
+.college-pdf-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.college-pdf-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 4px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.college-pdf-meta {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+.context-item:hover {
+  background: var(--overlay-light) !important;
+}
+
+.context-item#context-delete-btn:hover {
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+#context-add-to-folder-wrapper:hover #college-context-submenu {
+  display: flex !important;
+}
